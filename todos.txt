@@ -1,0 +1,10 @@
+1. To finish: 	
+
+	1.1. parser; 
+	1.2. generator; 
+
+2. Test; 
+3. Documentation; 
+4. For future: 
+
+	4.1. Add validation API; 

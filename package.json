@@ -1,0 +1,11 @@
+{
+	"name": "@hgargg-0710/regex",
+	"version": "0.1.0",
+	"author": "hgargg-0710",
+	"main": "./regex.mjs",
+	"license": "MIT",
+	"dependencies": {
+		"@hgargg-0710/one": "^0.1.2",
+		"@hgargg-0710/parsers.js": "^0.2.1"
+	}
+}
