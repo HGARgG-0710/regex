@@ -24,11 +24,18 @@ export const ExpressionParser = trivialCompose(
 	...[EndParser, BoundryParser, EscapedParser, CharacterClassParser]
 		.map((x) => [x, InputStream])
 		.flat(),
+	(x) => x.value.map((x) => ({ ...x, value: x.value.value })),
 	ExpressionTokenizer,
 	StringPattern
 )
 
 export default trivialCompose(
-	(deflagged) => ({ ...deflagged, value: ExpressionParser(deflagged.value) }),
+	(deflagged) => ({
+		...deflagged,
+		value: {
+			...deflagged.value,
+			expression: ExpressionParser(deflagged.value.expression)
+		}
+	}),
 	DeFlag
 )

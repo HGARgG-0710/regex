@@ -39,9 +39,9 @@ export const DeFlag = trivialCompose(
 	(x) =>
 		Flags(
 			((i) => ({
-				flags: identifyFlags(x.slice(i)),
+				flags: identifyFlags(x.slice(0, i).reverse()),
 				expression: x
-					.slice(i, x.length - 1)
+					.slice(i + 1, x.length - 1)
 					.reverse()
 					.join("")
 			}))(x.indexOf("/"))

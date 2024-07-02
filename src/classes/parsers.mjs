@@ -8,7 +8,7 @@ import {
 	limit,
 	wrapped
 } from "@hgargg-0710/parsers.js"
-import { Escape, Hyphen, RectCl } from "../chars/tokens.mjs"
+import { Escape, Hyphen, RectOp, RectCl } from "../chars/tokens.mjs"
 import { CharacterClass, ClassRange, NegCharacterClass } from "./tokens.mjs"
 import { BackspaceClass } from "../escaped/tokens.mjs"
 import { escapedMap } from "../escaped/parser..mjs"

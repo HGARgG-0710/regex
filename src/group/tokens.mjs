@@ -4,16 +4,16 @@ export const [
 	CaptureGroup,
 	NoCaptureGroup,
 	NamedCapture,
-	LookAheadSingle,
-	LookBehindSingle,
-	NegLookAheadSingle,
-	NegLookBehindSingle
+	LookAhead,
+	LookBehind,
+	NegLookAhead,
+	NegLookBehind
 ] = [
 	"capture",
 	"non-capture",
 	"named-capture",
-	"lookahead-single",
-	"lookbehind-single",
-	"neg-lookahead-single",
-	"neg-lookbehind-single"
+	"lookahead",
+	"lookbehind",
+	"neg-lookahead",
+	"neg-lookbehind"
 ].map(TokenType)

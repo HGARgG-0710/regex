@@ -8,7 +8,7 @@ import {
 	current,
 	forward,
 	is,
-	limit,
+	read,
 	nested,
 	wrapped
 } from "@hgargg-0710/parsers.js"
@@ -24,13 +24,13 @@ import {
 	RightAngular
 } from "../chars/tokens.mjs"
 import {
-	CaptureGroupSingle,
-	LookAheadSingle,
-	LookBehindSingle,
-	NamedCaptureSingle,
-	NegLookAheadSingle,
-	NegLookBehindSingle,
-	NoCaptureGroupSingle
+	CaptureGroup,
+	LookAhead,
+	LookBehind,
+	NamedCapture,
+	NegLookAhead,
+	NegLookBehind,
+	NoCaptureGroup
 } from "./tokens.mjs"
 import { Expression } from "../deflag/tokens.mjs"
 import { QuantifierParser } from "../quantifier/parsers.mjs"
@@ -52,22 +52,21 @@ export const LeftAngularHandler = TableParser(
 				Eq,
 				function (input) {
 					input.next()
-					return LookBehindSingle(EndParser(input))
+					return LookBehind(EndParser(input))
 				}
 			],
 			[
 				ExclMark,
 				function (input) {
 					input.next()
-					return NegLookBehindSingle(EndParser(input))
+					return NegLookBehind(EndParser(input))
 				}
 			]
 		]),
-
 		function (input) {
 			const name = readIdentifier(input, TokenSource({ value: "" })).value
 			input.next()
-			return NamedCaptureSingle({ name, expression: EndParser(input) })
+			return NamedCapture({ name, expression: EndParser(input) })
 		}
 	)
 )
@@ -79,7 +78,7 @@ export const QMarkHandler = TableParser(
 				Colon,
 				(input) => {
 					input.next()
-					return NoCaptureGroupSingle(EndParser(input))
+					return NoCaptureGroup(EndParser(input))
 				}
 			],
 			[
@@ -107,18 +106,18 @@ export const CollectionHandler = TableParser(
 				Eq,
 				function (input) {
 					input.next()
-					return LookAheadSingle(EndParser(input))
+					return LookAhead(EndParser(input))
 				}
 			],
 			[
 				ExclMark,
 				function (input) {
 					input.next()
-					return NegLookAheadSingle(EndParser(input))
+					return NegLookAhead(EndParser(input))
 				}
 			]
 		]),
-		(input) => CaptureGroupSingle(EndParser(input))
+		(input) => CaptureGroup(EndParser(input))
 	)
 )
 

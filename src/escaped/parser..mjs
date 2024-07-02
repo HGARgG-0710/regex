@@ -1,6 +1,5 @@
 import {
 	RegExpMap,
-	ValueMap,
 	read,
 	TokenSource,
 	wrapped,
@@ -20,7 +19,6 @@ import {
 	CarriageReturn,
 	ControlCharacter,
 	DigitClass,
-	Escaped,
 	FormFeed,
 	HorizontalTab,
 	NULClass,
@@ -70,7 +68,7 @@ export const readUnicodeClassProperty = wrapped(function (input) {
 	return UnicodeClassProperty(property)
 })
 
-export const escapedMap = ValueMap(RegExpMap)(
+export const escapedMap = RegExpMap.extend(Token.value)(
 	new Map(
 		[/d/, DigitClass],
 		[/D/, NonDigitClass],
@@ -96,7 +94,7 @@ export const escapedMap = ValueMap(RegExpMap)(
 				ControlCharacter((OpBrace.is(input.curr()) ? readuBrace : readu)(input))
 		],
 		[/[1-9]/, (curr, input) => Backreference(`${curr.value}${readNumber(input)}`)],
-		// TODO: refactor this into 'parsers.js' v0.3 - redirection of given arguments' positions to a given function.
+		// TODO: refactor this into 'parsers.js' v0.3 or 'one.js' - redirection of given arguments' positions to a given function.
 		[/k/, (curr, input) => readNamedBackreference(input)],
 		[/p/, (curr, input) => readUnicodeClassProperty(input)],
 		[/b/, WordBoundry]
@@ -107,12 +105,14 @@ export const escapedMap = ValueMap(RegExpMap)(
 // ? Refactor? [similar thing appears in 'parsers.mjs']
 export const escapePreface = TypeMap(PredicateMap)(
 	new Map([
-		Escape,
-		function (input) {
-			input.next() // \
-			const curr = input.next()
-			return escapedMap.index(curr)(curr, input)
-		}
+		[
+			Escape,
+			function (input) {
+				input.next() // \
+				const curr = input.next()
+				return escapedMap.index(curr)(curr, input)
+			}
+		]
 	]),
 	forward
 )

@@ -20,7 +20,8 @@ import {
 	RightAngular,
 	RegexSymbol,
 	Dollar,
-	Xor
+	Xor, 
+	Comma
 } from "./tokens.mjs"
 
 const { global } = regex

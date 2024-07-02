@@ -3,7 +3,8 @@ import {
 	PredicateMap,
 	TypeMap,
 	forward,
-	limit
+	limit,
+	output
 } from "@hgargg-0710/parsers.js"
 import { Pipe } from "../chars/tokens.mjs"
 import { Disjunction, DisjunctionArgument } from "./tokens.mjs"
@@ -17,12 +18,12 @@ export const limitPipe = limit((input) => !Pipe.is(input.curr()))
 export const DisjunctionTokenizer = BasicParser(
 	TypeMap(PredicateMap)(
 		new Map([[Pipe, forward]]),
-		trivialCompose(ouptut, DisjunctionArgument, (input) => limitPipe(input, []))
+		trivialCompose(output, DisjunctionArgument, (input) => limitPipe(input, []))
 	)
 )
 
 export const DisjunctionParser = BasicParser(
-	TypeMap(PredicateMap)(new Map([]), function (input, parser) {
+	TypeMap(PredicateMap)(new Map(), function (input, parser) {
 		if (Pipe.is(input.curr())) {
 			if (input.pos) {
 				input.prev()

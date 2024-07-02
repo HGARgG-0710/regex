@@ -23,7 +23,7 @@ export const NonEscapeHandler = TableParser(
 	)
 )
 
-export const noGreedyMap = TypeMap(PredicateMap)(
+export const noGreedyMap = PredicateMap(
 	new Map([
 		[
 			isQuantifier,
