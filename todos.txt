@@ -9,3 +9,7 @@
 
 	4.1. Add validation API; 
 	4.2. Reverse the parser (generator improvement);
+	4.3.?possibly: 
+		Fix the 'chars' remains - untended-to 'excl', and so forth... 
+		Those do not serve as anything beyond plain symbols... No reason for them to remain "specially marked"
+		after the parsing has been done...; 

@@ -22,7 +22,8 @@ const { trivialCompose } = _f
 export const limitBraced = limit((input) => !ClBrace.is(input.curr()))
 
 const _readNumber = read(trivialCompose((x) => !x, isNaN, Token.value, current))
-export const readNumber = (input) => _readNumber(input, TokenSource({ value: "" })).value
+export const readNumber = (input) =>
+	_readNumber(input, TokenSource({ value: "" })).value.value
 
 export const handleBraced = (input) => {
 	const first = readNumber(input)

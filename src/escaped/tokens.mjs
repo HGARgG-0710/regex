@@ -1,6 +1,21 @@
 import { TokenInstance, TokenType } from "@hgargg-0710/parsers.js"
 export const [
 	Escaped,
+	ControlCharacter,
+	Backreference,
+	NamedBackreference,
+	UnicodeClassProperty,
+	RegexIdentifier
+] = ["escaped", "control-char", "backref", "named-backref", "uniprop", "identifier"].map(
+	TokenType
+)
+
+export const [
+	CarriageReturn,
+	NonWordBoundry,
+	WordBoundry,
+	NULClass,
+	FormFeed,
 	DigitClass,
 	NonDigitClass,
 	WordClass,
@@ -10,16 +25,13 @@ export const [
 	HorizontalTab,
 	VerticalTab,
 	BackspaceClass,
-	NULClass,
-	FormFeed,
-	Newline,
-	CarriageReturn,
-	ControlCharacter,
-	Backreference,
-	NamedBackreference,
-	UnicodeClassProperty
+	Newline
 ] = [
-	"escaped",
+	"cr",
+	"non-word-boundry",
+	"word-boundry",
+	"nul-class",
+	"form-feed",
 	"digit-class",
 	"non-digit-class",
 	"word-class",
@@ -29,16 +41,5 @@ export const [
 	"tab",
 	"vtab",
 	"backspace",
-	"nul-class",
-	"form-feed",
-	"newline",
-	"cr",
-	"control-char",
-	"backref",
-	"named-backref",
-	"uniprop"
-].map(TokenType)
-
-export const [NonWordBoundry, WordBoundry] = ["non-word-boundry", "word-boundry"].map(
-	TokenInstance
-)
+	"newline"
+].map(TokenInstance)

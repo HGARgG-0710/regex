@@ -23,6 +23,7 @@ export const limitPipe = limit((input) => !Pipe.is(input.curr()))
 
 export const skipTilPipes = skip((input) => !Pipe.is(input.curr()))
 
+// TODO: MAKE A PART OF 'parsers.js' v0.3 - the 'has' utility. Then, refactor from there...
 export const hasDisjunctions = (stream) => {
 	skipTilPipes(stream)
 	return !stream.isEnd()

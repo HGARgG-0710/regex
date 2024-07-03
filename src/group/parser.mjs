@@ -37,12 +37,13 @@ import { Expression } from "../deflag/tokens.mjs"
 import { QuantifierParser } from "../quantifier/parsers.mjs"
 import { ParseNoGreedy } from "../nogreedy/parsers.mjs"
 import { DisjunctionParser, hasDisjunctions } from "../disjunct/parsers.mjs"
+import { RegexIdentifier } from "../escaped/tokens.mjs"
 
 const { trivialCompose } = _f
 
 const _readIdentifier = read((input) => !RightAngular.is(input.curr()))
 export const readIdentifier = (input) =>
-	_readIdentifier(input, TokenSource({ value: "" })).value
+	RegexIdentifier(_readIdentifier(input, TokenSource({ value: "" })).value.value)
 
 export const nestedBrack = nested(
 	...[OpBrack, ClBrack].map((X) => trivialCompose(...[is(X), current]))
@@ -90,20 +91,6 @@ export const QMarkHandler = TableParser(
 					input.next()
 					return LeftAngularHandler(input)
 				}
-			]
-		])
-	)
-)
-
-export const CollectionHandler = TableParser(
-	TypeMap(PredicateMap)(
-		new Map([
-			[
-				QMark,
-				function (input) {
-					input.next() // ?
-					return QMarkHandler(input)
-				}
 			],
 			[
 				Eq,
@@ -117,6 +104,20 @@ export const CollectionHandler = TableParser(
 				function (input) {
 					input.next()
 					return NegLookAhead(EndParser(input))
+				}
+			]
+		])
+	)
+)
+
+export const CollectionHandler = TableParser(
+	TypeMap(PredicateMap)(
+		new Map([
+			[
+				QMark,
+				function (input) {
+					input.next() // ?
+					return QMarkHandler(input)
 				}
 			]
 		]),

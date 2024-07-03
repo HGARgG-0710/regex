@@ -48,9 +48,9 @@ const _readuBrace = read((input, i) => i < 4 || (i === 4 && isHex(input.curr().v
 const _readu = read(4)
 
 export const readx = read(2)
-export const readu = (input) => _readu(input, TokenSource({ value: "" })).value
+export const readu = (input) => _readu(input, TokenSource({ value: "" })).value.value
 export const readuBrace = wrapped(
-	(input) => _readuBrace(input, TokenSource({ value: "" })).value
+	(input) => _readuBrace(input, TokenSource({ value: "" })).value.value
 )
 
 export const readNamedBackreference = wrapped(
@@ -60,7 +60,7 @@ export const readNamedBackreference = wrapped(
 export const readBraced = read((input) => !ClBrace.is(input.curr()))
 
 export const readUnicodeClassProperty = wrapped(function (input) {
-	const property = readBraced(input, TokenSource({ value: "" })).value
+	const property = readBraced(input, TokenSource({ value: "" })).value.value
 	if (property.includes("=")) {
 		const [prop, value] = property.split("=").slice(0, 2)
 		return UnicodeClassProperty({ property: prop, value })
@@ -86,7 +86,7 @@ export const escapedMap = ValueMap(RegExpMap)(
 		[
 			/x/,
 			(cur, input) =>
-				ControlCharacter(readx(input, TokenSource({ value: "" })).value)
+				ControlCharacter(readx(input, TokenSource({ value: "" })).value.value)
 		],
 		[
 			/u/,
