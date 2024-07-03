@@ -10,7 +10,8 @@ import {
 	is,
 	read,
 	nested,
-	wrapped
+	wrapped,
+	output
 } from "@hgargg-0710/parsers.js"
 import { function as _f } from "@hgargg-0710/one"
 import {
@@ -35,11 +36,13 @@ import {
 import { Expression } from "../deflag/tokens.mjs"
 import { QuantifierParser } from "../quantifier/parsers.mjs"
 import { ParseNoGreedy } from "../nogreedy/parsers.mjs"
-import { DisjunctionParser, DisjunctionTokenizer } from "../disjunct/parsers.mjs"
+import { DisjunctionParser, hasDisjunctions } from "../disjunct/parsers.mjs"
 
 const { trivialCompose } = _f
 
-export const readIdentifier = read((input) => !RightAngular.is(input.curr()))
+const _readIdentifier = read((input) => !RightAngular.is(input.curr()))
+export const readIdentifier = (input) =>
+	_readIdentifier(input, TokenSource({ value: "" })).value
 
 export const nestedBrack = nested(
 	...[OpBrack, ClBrack].map((X) => trivialCompose(...[is(X), current]))
@@ -64,7 +67,7 @@ export const LeftAngularHandler = TableParser(
 			]
 		]),
 		function (input) {
-			const name = readIdentifier(input, TokenSource({ value: "" })).value
+			const name = readIdentifier(input)
 			input.next()
 			return NamedCapture({ name, expression: EndParser(input) })
 		}
@@ -122,7 +125,15 @@ export const CollectionHandler = TableParser(
 )
 
 export const groupMap = TypeMap(PredicateMap)(
-	new Map([[OpBrack, wrapped(trivialCompose(CollectionHandler, nestedBrack))]]),
+	new Map([
+		[
+			OpBrack,
+			trivialCompose(
+				output,
+				wrapped(trivialCompose(CollectionHandler, InputStream, nestedBrack))
+			)
+		]
+	]),
 	forward
 )
 
@@ -130,8 +141,8 @@ export const GroupParser = BasicParser(groupMap)
 
 export const EndParser = trivialCompose(
 	Expression,
-	...[DisjunctionParser, DisjunctionTokenizer, ParseNoGreedy, QuantifierParser]
-		.map((x) => [x, InputStream])
-		.flat(),
+	(output) =>
+		hasDisjunctions(InputStream(output)) ? DisjunctionParser(output) : output,
+	...[ParseNoGreedy, QuantifierParser].map((x) => [x, InputStream]).flat(),
 	GroupParser
 )

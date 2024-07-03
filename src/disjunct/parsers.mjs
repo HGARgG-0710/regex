@@ -4,16 +4,29 @@ import {
 	TypeMap,
 	forward,
 	limit,
-	output
+	output,
+	skip,
+	InputStream,
+	delimited,
+	is,
+	current,
+	preserve
 } from "@hgargg-0710/parsers.js"
 import { Pipe } from "../chars/tokens.mjs"
-import { Disjunction, DisjunctionArgument } from "./tokens.mjs"
+import { Disjunction, DisjunctionArgument, EmptyExpression } from "./tokens.mjs"
 
 import { function as _f } from "@hgargg-0710/one"
 
 const { trivialCompose } = _f
 
 export const limitPipe = limit((input) => !Pipe.is(input.curr()))
+
+export const skipTilPipes = skip((input) => !Pipe.is(input.curr()))
+
+export const hasDisjunctions = (stream) => {
+	skipTilPipes(stream)
+	return !stream.isEnd()
+}
 
 export const DisjunctionTokenizer = BasicParser(
 	TypeMap(PredicateMap)(
@@ -22,20 +35,28 @@ export const DisjunctionTokenizer = BasicParser(
 	)
 )
 
-export const DisjunctionParser = BasicParser(
-	TypeMap(PredicateMap)(new Map(), function (input, parser) {
-		if (Pipe.is(input.curr())) {
-			if (input.pos) {
-				input.prev()
-				const first = input.next()
-				input.next() // |
-				return Disjunction([first, ...parser(input)])
-			}
-			input.next()
-			return Disjunction(parser(input))
-		}
-		const curr = input.next()
-		if (Pipe.is(input.curr())) return []
-		return [curr]
-	})
+const _disjdelim = delimited(() => true, trivialCompose(is(Pipe), current))
+
+export const DisjunctionDelimiter = (input) => _disjdelim(input, preserve)
+
+export const EmptyFixer = BasicParser(
+	TypeMap(PredicateMap)(
+		new Map([
+			[
+				Pipe,
+				(input) =>
+					[input.next()].concat(
+						Pipe.is(input.curr()) ? [EmptyExpression()] : []
+					)
+			]
+		]),
+		forward
+	)
+)
+
+export const DisjunctionParser = trivialCompose(
+	Disjunction,
+	...[DisjunctionDelimiter, DisjunctionTokenizer, EmptyFixer]
+		.map((x) => [x, InputStream])
+		.flat()
 )

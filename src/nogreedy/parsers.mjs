@@ -3,10 +3,14 @@ import {
 	PredicateMap,
 	TableParser,
 	TypeMap,
-	forward
+	forward,
+	output
 } from "@hgargg-0710/parsers.js"
 import { QMark } from "../chars/tokens.mjs"
 import { NoGreedy, isQuantifier } from "./tokens.mjs"
+import { trivialCompose } from "@hgargg-0710/one/src/functions/functions.mjs"
+
+const OutNoGreedy = trivialCompose(output, NoGreedy)
 
 export const NonEscapeHandler = TableParser(
 	TypeMap(PredicateMap)(
@@ -15,7 +19,7 @@ export const NonEscapeHandler = TableParser(
 				QMark,
 				function (input) {
 					input.next()
-					return NoGreedy
+					return OutNoGreedy
 				}
 			]
 		]),

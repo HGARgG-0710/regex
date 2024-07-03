@@ -7,7 +7,8 @@ import {
 	PredicateMap,
 	forward,
 	BasicParser,
-	Token
+	Token,
+	ValueMap
 } from "@hgargg-0710/parsers.js"
 
 import { function as _f } from "@hgargg-0710/one"
@@ -52,10 +53,9 @@ export const readuBrace = wrapped(
 	(input) => _readuBrace(input, TokenSource({ value: "" })).value
 )
 
-export const readNamedBackreference = wrapped(function (input) {
-	const name = readIdentifier(input, TokenSource({ value: "" })).value
-	return NamedBackreference(name)
-})
+export const readNamedBackreference = wrapped(
+	trivialCompose(NamedBackreference, readIdentifier)
+)
 
 export const readBraced = read((input) => !ClBrace.is(input.curr()))
 
@@ -68,8 +68,8 @@ export const readUnicodeClassProperty = wrapped(function (input) {
 	return UnicodeClassProperty(property)
 })
 
-export const escapedMap = RegExpMap.extend(Token.value)(
-	new Map(
+export const escapedMap = ValueMap(RegExpMap)(
+	new Map([
 		[/d/, DigitClass],
 		[/D/, NonDigitClass],
 		[/w/, WordClass],
@@ -98,7 +98,7 @@ export const escapedMap = RegExpMap.extend(Token.value)(
 		[/k/, (curr, input) => readNamedBackreference(input)],
 		[/p/, (curr, input) => readUnicodeClassProperty(input)],
 		[/b/, WordBoundry]
-	),
+	]),
 	trivialCompose(Escaped, Token.value)
 )
 
@@ -110,7 +110,7 @@ export const escapePreface = TypeMap(PredicateMap)(
 			function (input) {
 				input.next() // \
 				const curr = input.next()
-				return escapedMap.index(curr)(curr, input)
+				return [escapedMap.index(curr)(curr, input)]
 			}
 		]
 	]),
