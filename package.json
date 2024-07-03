@@ -1,6 +1,7 @@
 {
 	"name": "@hgargg-0710/regex",
 	"version": "0.1.0",
+	"description": "A JavaScript-flavoured regular expression parser, generator and AST-construction API.", 
 	"author": "hgargg-0710",
 	"main": "./regex.mjs",
 	"license": "MIT",
