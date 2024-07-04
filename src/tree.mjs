@@ -6,11 +6,12 @@ import {
 	miss,
 	PredicateMap,
 	TreeStream,
-	TypeMap
+	TypeMap,
+	misc
 } from "@hgargg-0710/parsers.js"
 import { Expression } from "./deflag/tokens.mjs"
 import { CharacterClass, ClassRange, NegCharacterClass } from "./classes/tokens.mjs"
-import { NOnly, NtoM, OnePlus, Optional, ZeroPlus } from "./quantifier/tokens.mjs"
+import { NOnly, NPlus, NtoM, OnePlus, Optional, ZeroPlus } from "./quantifier/tokens.mjs"
 import { NoGreedy } from "./nogreedy/tokens.mjs"
 import { Disjunction, DisjunctionArgument } from "./disjunct/tokens.mjs"
 import {
@@ -19,11 +20,13 @@ import {
 	LookBehind,
 	NamedCapture,
 	NegLookAhead,
-	NegLookBehind
+	NegLookBehind,
+	NoCaptureGroup
 } from "./group/tokens.mjs"
 import { NamedBackreference } from "./escaped/tokens.mjs"
 
 const { trivialCompose } = _f
+const { isArray } = misc
 
 // ! Refactor into 'parsers.js' v0.3
 function regexTree(tree) {
@@ -66,6 +69,11 @@ export const treeMap = TypeMap(PredicateMap)(
 				Flags,
 				function (tree, treeConverter) {
 					tree.value.flags = tree.value.flags.map(treeConverter)
+					tree.value.flags.children = function () {
+						return this
+					}
+					tree.value.flags = regexTree(tree.value.flags)
+
 					tree.value.expression = treeConverter(tree.value.expression)
 					tree.children = function () {
 						return ["flags", "expression"].map((x) => this.value[x])
@@ -73,7 +81,11 @@ export const treeMap = TypeMap(PredicateMap)(
 					return tree
 				}
 			],
-			[Expression, ValueTree],
+			[
+				Expression,
+				(tree, treeTransform) =>
+					(isArray(tree.value) ? ValueTree : SingleTree)(tree, treeTransform)
+			],
 			[CharacterClass, ValueTree],
 			[NegCharacterClass, ValueTree],
 			[ClassRange, ValueTree],
@@ -83,6 +95,7 @@ export const treeMap = TypeMap(PredicateMap)(
 			[ZeroPlus, SingleTree],
 			[OnePlus, SingleTree],
 			[Optional, SingleTree],
+			[NoCaptureGroup, SingleTree],
 			[CaptureGroup, SingleTree],
 			[LookAhead, SingleTree],
 			[LookBehind, SingleTree],
@@ -91,6 +104,7 @@ export const treeMap = TypeMap(PredicateMap)(
 			[NamedBackreference, SingleTree],
 			[NOnly, SeveralTree],
 			[NtoM, SeveralTree],
+			[NPlus, SeveralTree],
 			// ? Generalize this 'recursive property mutation' for trees?
 			[
 				NamedCapture,
@@ -105,7 +119,7 @@ export const treeMap = TypeMap(PredicateMap)(
 			]
 		].map(([Type, Handler]) => [Type, trivialCompose(regexTree, Handler)])
 	),
-	ChildlessTree
+	trivialCompose(regexTree, ChildlessTree)
 )
 
 // ! refactor generalization into 'parsers.js' v0.3
@@ -114,6 +128,13 @@ const fromTable = (map) => {
 	return T
 }
 
-export const RegexTree = fromTable(treeMap)
+// ! THIS KIND OF THING is a hack. Ought to not be a part of 'parsers.js' (instead - USE THE PARENT ELEMENT AS THE PART OF THE 'TreeStream'!)
+export const RegexTree = trivialCompose((x) => {
+	const r = { value: x }
+	r.children = function () {
+		return [this.value]
+	}
+	return regexTree(r)
+}, fromTable(treeMap))
 
 export const RegexStream = trivialCompose(TreeStream, RegexTree)

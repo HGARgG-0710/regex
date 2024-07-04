@@ -28,7 +28,9 @@ import {
 	LookAhead,
 	LookBehind,
 	NamedCapture,
-	NegLookAhead
+	NegLookAhead,
+	NegLookBehind,
+	NoCaptureGroup
 } from "./group/tokens.mjs"
 import {
 	Backreference,
@@ -52,52 +54,10 @@ import {
 	WordBoundry,
 	WordClass
 } from "./escaped/tokens.mjs"
+import { PatternEnd, PatternStart } from "./boundry/tokens.mjs"
 
 const { trivialCompose, cache } = _f
 const { toObject } = map
-
-// ^ Tokens to describe
-// * 1. Flags
-// * 2. Expression
-// * 3. CharacterClass
-// * 4. NegCharacterClass
-// * 5. ClassRange
-// * 6. Disjunction
-// * 7. DisjunctionArgument
-// * 8. NoGreedy
-// * 9. ZeroPlus
-// * 10. OnePlus
-// * 11. Optional
-// * 12. CaptureGroup
-// * 13. LookAhead
-// * 14. LookBehind
-// * 15. NegLookAhead
-// * 16. NegLookBehind
-// * 17. NamedBackreference
-// * 18. NOnly
-// * 19. NPlus
-// * 20. NtoM
-// * 21. NamedCapture
-// * 22. ["otherwise", the last option - Symbol-s, Identifiers, Number-backrefs]
-// * 23. BackspaceClass
-// * 24. Newline
-// * 25. CarriageReturn
-// ! 26. [All different flags from 'deflag/tokens.mjs'...];
-// * 27. NonWhitespaceClass
-// * 28. WhitespaceClass
-// * 29. WordClass
-// * 30. NonWordClass
-// * 31. HorizontalTab
-// * 32. VerticalTab
-// * 33. FormFeed
-// * 34. DigitClass
-// * 35. NonDigitClass
-// * 36. NULClass
-// * 37. EmptyExpression (when two '||' meet...);
-// * 38. ControlCharacter
-// * 39. Escaped
-// * 40. UnicodeClassProperty
-// * 41. Backreference
 
 const expressionBounds = Array(2).fill("")
 const characterClassBounds = ["[", "]"]
@@ -108,43 +68,48 @@ const lookaheadBounds = ["(?=", ")"]
 const lookbehindBounds = ["(?<=", ")"]
 const negLookaheadBounds = ["(?!", ")"]
 const negLookbehindBounds = ["(?<!", ")"]
+const nonCaptureBounds = ["(?:", ")"]
 
 const controlLengthMap = BasicMap.extend((x) => x.length)(
 	new Map([
-		[1, (value) => `c${value}`],
-		[2, (value) => `x${value}`],
-		[4, (value) => `u${value}`],
-		[5, (value) => `u{${value}}`]
+		[1, (value) => `\\c${value}`],
+		[2, (value) => `\\x${value}`],
+		[4, (value) => `\\u${value}`],
+		[5, (value) => `\\u{${value}}`]
 	])
 )
 
-const source = cache(
-	(sym) => () => StringSource(sym),
-	[
-		"\\b",
-		"\\B",
-		"\\w",
-		"\\W",
-		"\\n",
-		"\\f",
-		"\\0",
-		"\\v",
-		"\\t",
-		"\\s",
-		"\\S",
-		"",
-		"\\r",
-		"\\D",
-		"\\d",
-		"d",
-		"g",
-		"i",
-		"m",
-		"s",
-		"u",
-		"v",
-		"y"
-	]
+const source = toObject(
+	cache(
+		(sym) => () => StringSource(sym),
+		[
+			"\\b",
+			"\\B",
+			"\\w",
+			"\\W",
+			"\\n",
+			"\\f",
+			"\\0",
+			"\\v",
+			"\\t",
+			"\\s",
+			"\\S",
+			"",
+			"\\r",
+			"\\D",
+			"\\d",
+			"d",
+			"g",
+			"i",
+			"m",
+			"s",
+			"u",
+			"v",
+			"y",
+			"^",
+			"$"
+		]
+	)
 )
 
 const cachedSource = toObject(cache(StringSource, ["|"]))
@@ -157,17 +122,20 @@ const delimCache = [
 const ArrayGenerator = cache(
 	(lim) =>
 		function (input, generator) {
+			const valueLength = input.curr().value.length
 			return StringSource(
 				`${lim[0]}${
-					Array(input.curr().value.length)
+					Array(valueLength)
 						.fill(0)
 						.map(() => {
 							input.next()
 							return generator(input)
 						})
 						.reduce(
-							(last, curr) =>
-								delimCache[+!!lim[2]][lim[2] || 0](last.concat(curr)),
+							(last, curr, i) =>
+								delimCache[+(i < valueLength - 1 && !!lim[2])][
+									(i < valueLength - 1 && lim[2]) || 0
+								](last.concat(curr)),
 							StringSource()
 						).value
 				}${lim[1]}`
@@ -182,7 +150,8 @@ const ArrayGenerator = cache(
 		lookaheadBounds,
 		lookbehindBounds,
 		negLookaheadBounds,
-		negLookbehindBounds
+		negLookbehindBounds,
+		nonCaptureBounds
 	]
 )
 
@@ -197,14 +166,34 @@ const GenerateSinglePost = toObject(
 	)
 )
 
+const NHandlerId = (x) => x
+const NHandlerPair = (x) => x.join(",")
+const NHandlerComma = (x) => `${x},`
+
+const NCache = cache(
+	(handler) =>
+		function (input, generator) {
+			const { range } = input.curr().value
+			input.next()
+			return StringSource(`${generator(input).value}{${handler(range)}}`)
+		},
+	[NHandlerId, NHandlerPair, NHandlerComma]
+)
+
 // ! MAKE INTO proper API!
 export const generatorMap = TypeMap(PredicateMap)(
 	new Map([
 		[
 			Flags,
 			function (input, generator) {
-				input.next()
-				const flags = generator(input).value
+				const flagLen = input.next().value.flags.length
+				const flags = Array(flagLen)
+					.fill(0)
+					.map(() => {
+						input.next()
+						return generator(input).value
+					})
+					.join("")
 				input.next()
 				const expression = generator(input).value
 				return StringSource(`/${expression}/${flags}`)
@@ -226,43 +215,22 @@ export const generatorMap = TypeMap(PredicateMap)(
 		[Optional, GenerateSinglePost["?"]],
 		[ZeroPlus, GenerateSinglePost["*"]],
 		[OnePlus, GenerateSinglePost["+"]],
+		[NoCaptureGroup, ArrayGenerator.get(nonCaptureBounds)],
 		[CaptureGroup, ArrayGenerator.get(groupBounds)],
 		[LookAhead, ArrayGenerator.get(lookaheadBounds)],
 		[LookBehind, ArrayGenerator.get(lookbehindBounds)],
 		[NegLookAhead, ArrayGenerator.get(negLookaheadBounds)],
-		[negLookbehindBounds, ArrayGenerator.get(negLookbehindBounds)],
+		[NegLookBehind, ArrayGenerator.get(negLookbehindBounds)],
 		[
 			NamedBackreference,
 			function (input, generator) {
 				input.next()
-				return StringSource(`<${generator(input)}>`)
+				return StringSource(`\\k<${generator(input).value}>`)
 			}
 		],
-		// ! REFACTOR THESE 3 INTO A SINGLE 'cache' expression...;
-		[
-			NOnly,
-			function (input, generator) {
-				const { range } = input.curr().value
-				input.next()
-				return StringSource(`${generator(input).value}{${range}}`)
-			}
-		],
-		[
-			NtoM,
-			function (input, generator) {
-				const { range } = input.curr().value
-				input.next()
-				return StringSource(`${generator(input).value}{${range.join(",")}}`)
-			}
-		],
-		[
-			NPlus,
-			function (input, generator) {
-				const { range } = input.curr().value
-				input.next()
-				return StringSource(`${generator(input).value}{${range}}`)
-			}
-		],
+		[NOnly, NCache.get(NHandlerId)],
+		[NtoM, NCache.get(NHandlerPair)],
+		[NPlus, NCache.get(NHandlerComma)],
 		[
 			NamedCapture,
 			function (input, generator) {
@@ -319,7 +287,7 @@ export const generatorMap = TypeMap(PredicateMap)(
 				)
 			}
 		],
-		[Backreference, (input) => StringSource(`\\k<${input.curr().value}>`)],
+		[Backreference, (input) => StringSource(`\\${input.curr().value}`)],
 		[Escaped, (input) => StringSource(`\\${input.curr().value}`)],
 		[MatchIndicies, source["d"]],
 		[GlobalSearch, source["g"]],
@@ -328,15 +296,17 @@ export const generatorMap = TypeMap(PredicateMap)(
 		[DotAll, source["s"]],
 		[Unicode, source["u"]],
 		[UnicodeSets, source["v"]],
-		[Sticky, source["y"]]
+		[Sticky, source["y"]],
+		[PatternStart, source["^"]],
+		[PatternEnd, source["$"]]
 	]),
 	(input) => StringSource(`${input.curr().value}`)
 )
 
-export const RegexGeneratr = SourceGenerator(generatorMap)
+export const RegexGenerator = SourceGenerator(generatorMap)
 
 export default trivialCompose(
 	(x) => x.value,
-	(x) => RegexGeneratr(x, StringSource()),
+	(x) => RegexGenerator(x, StringSource()),
 	RegexStream
 )
