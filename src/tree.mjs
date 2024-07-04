@@ -68,7 +68,7 @@ export const treeMap = TypeMap(PredicateMap)(
 					tree.value.flags = tree.value.flags.map(treeConverter)
 					tree.value.expression = treeConverter(tree.value.expression)
 					tree.children = function () {
-						return [this.flags, this.expression]
+						return ["flags", "expression"].map((x) => this.value[x])
 					}
 					return tree
 				}

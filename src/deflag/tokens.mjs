@@ -1,7 +1,4 @@
-import { TokenType, TokenInstance, is } from "@hgargg-0710/parsers.js"
-import { function as _f } from "@hgargg-0710/one"
-
-const { or } = _f
+import { TokenType, TokenInstance } from "@hgargg-0710/parsers.js"
 
 // * TokenTypes
 export const [Flags, Expression] = ["flags", "expression"].map(TokenType)
