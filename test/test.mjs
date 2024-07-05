@@ -1,5 +1,6 @@
 import { generate, parse } from "../regex.mjs"
 import { writeFile } from "fs/promises"
+import { PatternEnd } from "../src/boundry/tokens.mjs"
 
 const parseTests = [
 	"//",
@@ -19,3 +20,5 @@ const parsed = parseTests.map(parse)
 
 writeFile("out.json", JSON.stringify(parsed))
 writeFile("in.json", JSON.stringify(parsed.map(generate)))
+
+console.log(generate(PatternEnd()))

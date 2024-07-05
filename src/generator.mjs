@@ -332,7 +332,6 @@ export const [
 
 export const generatorMap = TypeMap(PredicateMap)(
 	new Map([
-		[Flags, GenerateFlags],
 		[Expression, GenerateExpression],
 		[CharacterClass, GenerateClass],
 		[NegCharacterClass, GenerateNegClass],
@@ -383,7 +382,8 @@ export const generatorMap = TypeMap(PredicateMap)(
 		[UnicodeSets, GenerateUnicodeSets],
 		[Sticky, GenerateSticky],
 		[PatternStart, GeneratePatternStart],
-		[PatternEnd, GeneratePatternEnd]
+		[PatternEnd, GeneratePatternEnd],
+		[Flags, GenerateFlags]
 	]),
 	GenerateTrivial
 )
