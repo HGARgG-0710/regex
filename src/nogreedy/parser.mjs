@@ -12,31 +12,22 @@ import { trivialCompose } from "@hgargg-0710/one/src/functions/functions.mjs"
 
 const OutNoGreedy = trivialCompose(output, NoGreedy)
 
-export const NonEscapeHandler = TableParser(
-	TypeMap(PredicateMap)(
-		new Map([
-			[
-				QMark,
-				function (input) {
-					input.next()
-					return OutNoGreedy
-				}
-			]
-		]),
-		() => output
-	)
+export function HandleQMark(input) {
+	input.next()
+	return OutNoGreedy
+}
+
+export const QuantifierHandler = TableParser(
+	TypeMap(PredicateMap)(new Map([[QMark, HandleQMark]]), () => output)
 )
 
+export function HandleQuantifier(input) {
+	const curr = input.next()
+	return QuantifierHandler(input)(curr)
+}
+
 export const noGreedyMap = PredicateMap(
-	new Map([
-		[
-			isQuantifier,
-			function (input) {
-				const curr = input.next()
-				return NonEscapeHandler(input)(curr)
-			}
-		]
-	]),
+	new Map([[isQuantifier, HandleQuantifier]]),
 	forward
 )
 

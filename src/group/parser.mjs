@@ -34,9 +34,9 @@ import {
 	NoCaptureGroup
 } from "./tokens.mjs"
 import { Expression } from "../deflag/tokens.mjs"
-import { QuantifierParser } from "../quantifier/parsers.mjs"
-import { ParseNoGreedy } from "../nogreedy/parsers.mjs"
-import { DisjunctionParser, hasDisjunctions } from "../disjunct/parsers.mjs"
+import { QuantifierParser } from "../quantifier/parser.mjs"
+import { ParseNoGreedy } from "../nogreedy/parser.mjs"
+import { DisjunctionParser, hasDisjunctions } from "../disjunct/parser.mjs"
 import { RegexIdentifier } from "../escaped/tokens.mjs"
 
 const { trivialCompose } = _f
@@ -49,94 +49,80 @@ export const nestedBrack = nested(
 	...[OpBrack, ClBrack].map((X) => trivialCompose(...[is(X), current]))
 )
 
+export function HandleLeftAngularEq(input) {
+	input.next()
+	return LookBehind(EndParser(input))
+}
+
+export function HandleLeftAngularExclMark(input) {
+	input.next()
+	return NegLookBehind(EndParser(input))
+}
+
+export function HandleLeftAngularBase(input) {
+	const name = readIdentifier(input)
+	input.next()
+	return NamedCapture({ name, expression: EndParser(input) })
+}
+
 export const LeftAngularHandler = TableParser(
 	TypeMap(PredicateMap)(
 		new Map([
-			[
-				Eq,
-				function (input) {
-					input.next()
-					return LookBehind(EndParser(input))
-				}
-			],
-			[
-				ExclMark,
-				function (input) {
-					input.next()
-					return NegLookBehind(EndParser(input))
-				}
-			]
+			[Eq, HandleLeftAngularEq],
+			[ExclMark, HandleLeftAngularExclMark]
 		]),
-		function (input) {
-			const name = readIdentifier(input)
-			input.next()
-			return NamedCapture({ name, expression: EndParser(input) })
-		}
+		HandleLeftAngularBase
 	)
 )
+
+export function HandleColon(input) {
+	input.next()
+	return NoCaptureGroup(EndParser(input))
+}
+
+export function HandleLeftAngular(input) {
+	input.next()
+	return LeftAngularHandler(input)
+}
+
+export function HandleQMarkEq(input) {
+	input.next()
+	return LookAhead(EndParser(input))
+}
+
+export function HandleQMarkExclMark(input) {
+	input.next()
+	return NegLookAhead(EndParser(input))
+}
 
 export const QMarkHandler = TableParser(
 	TypeMap(PredicateMap)(
 		new Map([
-			[
-				Colon,
-				(input) => {
-					input.next()
-					return NoCaptureGroup(EndParser(input))
-				}
-			],
-			[
-				LeftAngular,
-				function (input) {
-					input.next()
-					return LeftAngularHandler(input)
-				}
-			],
-			[
-				Eq,
-				function (input) {
-					input.next()
-					return LookAhead(EndParser(input))
-				}
-			],
-			[
-				ExclMark,
-				function (input) {
-					input.next()
-					return NegLookAhead(EndParser(input))
-				}
-			]
+			[Colon, HandleColon],
+			[LeftAngular, HandleLeftAngular],
+			[Eq, HandleQMarkEq],
+			[ExclMark, HandleQMarkExclMark]
 		])
 	)
 )
 
+export const HandleCollectionBase = (input) => CaptureGroup(EndParser(input))
+
+export function HandleQMark(input) {
+	input.next() // ?
+	return QMarkHandler(input)
+}
+
 export const CollectionHandler = TableParser(
-	TypeMap(PredicateMap)(
-		new Map([
-			[
-				QMark,
-				function (input) {
-					input.next() // ?
-					return QMarkHandler(input)
-				}
-			]
-		]),
-		(input) => CaptureGroup(EndParser(input))
-	)
+	TypeMap(PredicateMap)(new Map([[QMark, HandleQMark]]), HandleCollectionBase)
 )
 
-export const groupMap = TypeMap(PredicateMap)(
-	new Map([
-		[
-			OpBrack,
-			trivialCompose(
-				output,
-				wrapped(trivialCompose(CollectionHandler, InputStream, nestedBrack))
-			)
-		]
-	]),
-	forward
+export const GroupHandler = trivialCompose(
+	output,
+	wrapped(trivialCompose(CollectionHandler, InputStream, nestedBrack))
 )
+
+export const groupMap = TypeMap(PredicateMap)(new Map([[OpBrack, GroupHandler]]), forward)
 
 export const GroupParser = BasicParser(groupMap)
 

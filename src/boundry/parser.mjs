@@ -14,17 +14,16 @@ import { PatternEnd, PatternStart } from "./tokens.mjs"
 
 const { trivialCompose } = _f
 
+export function HandleEscaped(input) {
+	const curr = input.next()
+	if (curr.value === "B") return NonWordBoundry()
+	return curr
+}
+
 export const boundryParser = TypeMap(PredicateMap)(
 	new Map(
 		[
-			[
-				Escaped,
-				function (input) {
-					const curr = input.next()
-					if (curr.value === "B") return NonWordBoundry()
-					return curr
-				}
-			],
+			[Escaped, HandleEscaped],
 			...[
 				[Xor, PatternStart],
 				[Dollar, PatternEnd]

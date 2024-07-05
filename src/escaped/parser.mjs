@@ -37,7 +37,7 @@ import { ClBrace, Escape, OpBrace } from "../chars/tokens.mjs"
 
 import { readIdentifier } from "../group/parser.mjs"
 
-import { readNumber } from "../quantifier/parsers.mjs"
+import { readNumber } from "../quantifier/parser.mjs"
 
 const { trivialCompose } = _f
 
@@ -68,6 +68,15 @@ export const readUnicodeClassProperty = wrapped(function (input) {
 	return UnicodeClassProperty(property)
 })
 
+export const parseSingleControl = (curr, input) => ControlCharacter(input.next().value)
+export const parseDoubleControl = (cur, input) =>
+	ControlCharacter(readx(input, TokenSource({ value: "" })).value.value)
+export const parseMultControl = (curr, input) =>
+	ControlCharacter((OpBrace.is(input.curr()) ? readuBrace : readu)(input))
+
+export const parseBackreference = (curr, input) =>
+	Backreference(`${curr.value}${readNumber(input)}`)
+
 export const escapedMap = ValueMap(RegExpMap)(
 	new Map([
 		[/d/, DigitClass],
@@ -82,18 +91,10 @@ export const escapedMap = ValueMap(RegExpMap)(
 		[/0/, NULClass],
 		[/n/, Newline],
 		[/r/, CarriageReturn],
-		[/c/, (curr, input) => ControlCharacter(input.next().value)],
-		[
-			/x/,
-			(cur, input) =>
-				ControlCharacter(readx(input, TokenSource({ value: "" })).value.value)
-		],
-		[
-			/u/,
-			(curr, input) =>
-				ControlCharacter((OpBrace.is(input.curr()) ? readuBrace : readu)(input))
-		],
-		[/[1-9]/, (curr, input) => Backreference(`${curr.value}${readNumber(input)}`)],
+		[/c/, parseSingleControl],
+		[/x/, parseDoubleControl],
+		[/u/, parseMultControl],
+		[/[1-9]/, parseBackreference],
 		// TODO: refactor this into 'parsers.js' v0.3 or 'one.js' - redirection of given arguments' positions to a given function.
 		[/k/, (curr, input) => readNamedBackreference(input)],
 		[/p/, (curr, input) => readUnicodeClassProperty(input)],

@@ -44,38 +44,31 @@ const [OutOptional, OutZeroPlus, OutOnePlus] = [Optional, ZeroPlus, OnePlus].map
 	trivialCompose(output, f)
 )
 
-export const NonEscapeHandler = TableParser(
+export const BraceHandler = wrapped(
+	trivialCompose(handleBraced, InputStream, (input) => limitBraced(input))
+)
+export function HandleQMark(input) {
+	input.next()
+	return OutOptional
+}
+
+export function HandleStar(input) {
+	input.next()
+	return OutZeroPlus
+}
+
+export function HandlePlus(input) {
+	input.next()
+	return OutOnePlus
+}
+
+export const QuantifierHandler = TableParser(
 	TypeMap(PredicateMap)(
 		new Map([
-			[
-				OpBrace,
-				wrapped(
-					trivialCompose(handleBraced, InputStream, (input) =>
-						limitBraced(input)
-					)
-				)
-			],
-			[
-				QMark,
-				function (input) {
-					input.next()
-					return OutOptional
-				}
-			],
-			[
-				Star,
-				function (input) {
-					input.next()
-					return OutZeroPlus
-				}
-			],
-			[
-				Plus,
-				function (input) {
-					input.next()
-					return OutOnePlus
-				}
-			]
+			[OpBrace, BraceHandler],
+			[QMark, HandleQMark],
+			[Star, HandleStar],
+			[Plus, HandlePlus]
 		]),
 		() => output
 	)
@@ -83,5 +76,5 @@ export const NonEscapeHandler = TableParser(
 
 export const QuantifierParser = BasicParser(function (input) {
 	const curr = input.next()
-	return NonEscapeHandler(input)(curr)
+	return QuantifierHandler(input)(curr)
 })

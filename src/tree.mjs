@@ -62,30 +62,37 @@ export function SeveralTree(tree, treeConverter) {
 	return tree
 }
 
+// ? Generalize this 'recursive property mutation' for trees?
+export function FlagTree(tree, treeConverter) {
+	tree.value.flags = tree.value.flags.map(treeConverter)
+	tree.value.flags.children = function () {
+		return this
+	}
+	tree.value.flags = regexTree(tree.value.flags)
+
+	tree.value.expression = treeConverter(tree.value.expression)
+	tree.children = function () {
+		return ["flags", "expression"].map((x) => this.value[x])
+	}
+	return tree
+}
+
+export const ExpressionTree = (tree, treeTransform) =>
+	(isArray(tree.value) ? ValueTree : SingleTree)(tree, treeTransform)
+
+export function NamedCaptureTree(tree, treeConverter) {
+	tree.value.expression = treeConverter(tree.value.expression)
+	tree.value.name = treeConverter(tree.value.name)
+	tree.children = function () {
+		return ["name", "expression"].map((x) => this.value[x])
+	}
+	return tree
+}
+
 export const treeMap = TypeMap(PredicateMap)(
 	new Map(
 		[
-			[
-				Flags,
-				function (tree, treeConverter) {
-					tree.value.flags = tree.value.flags.map(treeConverter)
-					tree.value.flags.children = function () {
-						return this
-					}
-					tree.value.flags = regexTree(tree.value.flags)
-
-					tree.value.expression = treeConverter(tree.value.expression)
-					tree.children = function () {
-						return ["flags", "expression"].map((x) => this.value[x])
-					}
-					return tree
-				}
-			],
-			[
-				Expression,
-				(tree, treeTransform) =>
-					(isArray(tree.value) ? ValueTree : SingleTree)(tree, treeTransform)
-			],
+			[Expression, ExpressionTree],
 			[CharacterClass, ValueTree],
 			[NegCharacterClass, ValueTree],
 			[ClassRange, ValueTree],
@@ -97,26 +104,16 @@ export const treeMap = TypeMap(PredicateMap)(
 			[Optional, SingleTree],
 			[NoCaptureGroup, SingleTree],
 			[CaptureGroup, SingleTree],
+			[NOnly, SeveralTree],
+			[NtoM, SeveralTree],
+			[NPlus, SeveralTree],
 			[LookAhead, SingleTree],
 			[LookBehind, SingleTree],
 			[NegLookAhead, SingleTree],
 			[NegLookBehind, SingleTree],
 			[NamedBackreference, SingleTree],
-			[NOnly, SeveralTree],
-			[NtoM, SeveralTree],
-			[NPlus, SeveralTree],
-			// ? Generalize this 'recursive property mutation' for trees?
-			[
-				NamedCapture,
-				function (tree, treeConverter) {
-					tree.value.expression = treeConverter(tree.value.expression)
-					tree.value.name = treeConverter(tree.value.name)
-					tree.children = function () {
-						return ["name", "expression"].map((x) => this.value[x])
-					}
-					return tree
-				}
-			]
+			[NamedCapture, NamedCaptureTree],
+			[Flags, FlagTree]
 		].map(([Type, Handler]) => [Type, trivialCompose(regexTree, Handler)])
 	),
 	trivialCompose(regexTree, ChildlessTree)
@@ -128,7 +125,7 @@ const fromTable = (map) => {
 	return T
 }
 
-// ! THIS KIND OF THING is a hack. Ought to not be a part of 'parsers.js' (instead - USE THE PARENT ELEMENT AS THE PART OF THE 'TreeStream'!)
+// ! THIS KIND OF THING (the last '{ value : x }' function) is a hack. Ought to not be a part of 'parsers.js' (instead - USE THE PARENT ELEMENT AS THE PART OF THE 'TreeStream'!)
 export const RegexTree = trivialCompose((x) => {
 	const r = { value: x }
 	r.children = function () {

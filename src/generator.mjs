@@ -180,127 +180,212 @@ const NCache = cache(
 	[NHandlerId, NHandlerPair, NHandlerComma]
 )
 
-// ! MAKE INTO proper API!
+export function GenerateFlags(input, generator) {
+	const flagLen = input.next().value.flags.length
+	const flags = Array(flagLen)
+		.fill(0)
+		.map(() => {
+			input.next()
+			return generator(input).value
+		})
+		.join("")
+	input.next()
+	const expression = generator(input).value
+	return StringSource(`/${expression}/${flags}`)
+}
+
+export function GenerateClassRange(input) {
+	input.next()
+	return StringSource(`${input.next().value}-${input.curr().value}`)
+}
+
+export function GenerateNamedBackreference(input, generator) {
+	input.next()
+	return StringSource(`\\k<${generator(input).value}>`)
+}
+
+export function GenerateNamedCapture(input, generator) {
+	input.next()
+	const name = generator(input).value
+	input.next()
+	return StringSource(
+		`(?<${name}>${
+			Array(input.curr().value.length)
+				.fill(0)
+				.map(() => {
+					input.next()
+					return generator(input)
+				})
+				.reduce((last, curr) => last.concat(curr), StringSource()).value
+		})`
+	)
+}
+export function GenerateControlCharacter(input) {
+	const { value } = input.curr()
+	return StringSource(controlLengthMap.index(value)(value))
+}
+export function GenerateUnicodeClassProperty(input) {
+	const { value } = input.curr()
+	return StringSource(
+		`\\p{${typeof value === "string" ? value : `${value.property}=${value.value}`}}`
+	)
+}
+
+export const GenerateEscaped = (input) => StringSource(`\\${input.curr().value}`)
+export const GenerateBackreference = GenerateEscaped
+export const GenerateTrivial = (input) => StringSource(`${input.curr().value}`)
+
+export const [
+	GenerateExpression,
+	GenerateClass,
+	GenerateNegClass,
+	GenerateDisjunction,
+	GenerateDisjunctionArgument,
+	GenerateNonCaptureGroup,
+	GenerateCaptureGroup,
+	GenerateLookAhead,
+	GenerateLookBehind,
+	GenerateNegLookAhead,
+	GenerateNegLookBehind
+] = [
+	expressionBounds,
+	characterClassBounds,
+	negCharacterClassBounds,
+	disjunctionBounds,
+	expressionBounds,
+	nonCaptureBounds,
+	groupBounds,
+	lookaheadBounds,
+	lookbehindBounds,
+	negLookaheadBounds,
+	negLookbehindBounds
+].map((x) => ArrayGenerator.get(x))
+
+export const [GenerateNoGreedy, GenerateOptional, GenerateZeroPlus, GenerateOnePlus] = [
+	"?",
+	"?",
+	"*",
+	"+"
+].map((x) => GenerateSinglePost[x])
+
+export const [GenerateNOnly, GenerateNtoM, GenerateNPlus] = [
+	NHandlerId,
+	NHandlerPair,
+	NHandlerComma
+].map((x) => NCache.get(x))
+
+export const [
+	GenerateBackspaceClass,
+	GenerateWordBoundry,
+	GenerateNonWordBoundry,
+	GenerateNewline,
+	GenerateCarriageReturn,
+	GenerateWordClass,
+	GenerateNonWordClass,
+	GenerateFormFeed,
+	GenerateDigitClass,
+	GenerateNonDigitClass,
+	GenerateNULClass,
+	GenerateVerticalTab,
+	GenerateHorizontalTab,
+	GenerateNonWhitespaceClass,
+	GenerateWhitespaceClass,
+	GenerateEmptyExpression,
+	GenerateMatchIndicies,
+	GenerateGlobalSearch,
+	GenerateCaseInsensetive,
+	GenerateMultiline,
+	GenerateDotAll,
+	GenerateUnicode,
+	GenerateUnicodeSets,
+	GenerateSticky,
+	GeneratePatternStart,
+	GeneratePatternEnd
+] = [
+	"\\b",
+	"\\b",
+	"\\B",
+	"\\n",
+	"\\r",
+	"\\w",
+	"\\W",
+	"\\f",
+	"\\d",
+	"\\D",
+	"\\0",
+	"\\v",
+	"\\t",
+	"\\S",
+	"\\s",
+	"",
+	"d",
+	"g",
+	"i",
+	"m",
+	"s",
+	"u",
+	"v",
+	"y",
+	"^",
+	"$"
+].map((x) => source[x])
+
 export const generatorMap = TypeMap(PredicateMap)(
 	new Map([
-		[
-			Flags,
-			function (input, generator) {
-				const flagLen = input.next().value.flags.length
-				const flags = Array(flagLen)
-					.fill(0)
-					.map(() => {
-						input.next()
-						return generator(input).value
-					})
-					.join("")
-				input.next()
-				const expression = generator(input).value
-				return StringSource(`/${expression}/${flags}`)
-			}
-		],
-		[Expression, ArrayGenerator.get(expressionBounds)],
-		[CharacterClass, ArrayGenerator.get(characterClassBounds)],
-		[NegCharacterClass, ArrayGenerator.get(negCharacterClassBounds)],
-		[
-			ClassRange,
-			function (input) {
-				input.next()
-				return StringSource(`${input.next().value}-${input.curr().value}`)
-			}
-		],
-		[Disjunction, ArrayGenerator.get(disjunctionBounds)],
-		[DisjunctionArgument, ArrayGenerator.get(expressionBounds)],
-		[NoGreedy, GenerateSinglePost["?"]],
-		[Optional, GenerateSinglePost["?"]],
-		[ZeroPlus, GenerateSinglePost["*"]],
-		[OnePlus, GenerateSinglePost["+"]],
-		[NoCaptureGroup, ArrayGenerator.get(nonCaptureBounds)],
-		[CaptureGroup, ArrayGenerator.get(groupBounds)],
-		[LookAhead, ArrayGenerator.get(lookaheadBounds)],
-		[LookBehind, ArrayGenerator.get(lookbehindBounds)],
-		[NegLookAhead, ArrayGenerator.get(negLookaheadBounds)],
-		[NegLookBehind, ArrayGenerator.get(negLookbehindBounds)],
-		[
-			NamedBackreference,
-			function (input, generator) {
-				input.next()
-				return StringSource(`\\k<${generator(input).value}>`)
-			}
-		],
-		[NOnly, NCache.get(NHandlerId)],
-		[NtoM, NCache.get(NHandlerPair)],
-		[NPlus, NCache.get(NHandlerComma)],
-		[
-			NamedCapture,
-			function (input, generator) {
-				input.next()
-				const name = generator(input).value
-				input.next()
-				return StringSource(
-					`(?<${name}>${
-						Array(input.curr().value.length)
-							.fill(0)
-							.map(() => {
-								input.next()
-								return generator(input)
-							})
-							.reduce((last, curr) => last.concat(curr), StringSource())
-							.value
-					})`
-				)
-			}
-		],
-		[BackspaceClass, source["\\b"]],
-		[WordBoundry, source["\\b"]],
-		[NonWordBoundry, source["\\B"]],
-		[Newline, source["\\n"]],
-		[CarriageReturn, source["\\r"]],
-		[WordClass, source["\\w"]],
-		[NonWordClass, source["\\W"]],
-		[FormFeed, source["\\f"]],
-		[DigitClass, source["\\d"]],
-		[NonDigitClass, source["\\D"]],
-		[NULClass, source["\\0"]],
-		[VerticalTab, source["\\v"]],
-		[HorizontalTab, source["\\t"]],
-		[NonWhitespaceClass, source["\\S"]],
-		[WhitespaceClass, source["\\s"]],
-		[EmptyExpression, source[""]],
-		[
-			ControlCharacter,
-			function (input) {
-				const { value } = input.curr()
-				return StringSource(controlLengthMap.index(value)(value))
-			}
-		],
-		[
-			UnicodeClassProperty,
-			function (input) {
-				const { value } = input.curr()
-				return StringSource(
-					`\\p{${
-						typeof value === "string"
-							? value
-							: `${value.property}=${value.value}`
-					}}`
-				)
-			}
-		],
-		[Backreference, (input) => StringSource(`\\${input.curr().value}`)],
-		[Escaped, (input) => StringSource(`\\${input.curr().value}`)],
-		[MatchIndicies, source["d"]],
-		[GlobalSearch, source["g"]],
-		[CaseInsensitive, source["i"]],
-		[Multiline, source["m"]],
-		[DotAll, source["s"]],
-		[Unicode, source["u"]],
-		[UnicodeSets, source["v"]],
-		[Sticky, source["y"]],
-		[PatternStart, source["^"]],
-		[PatternEnd, source["$"]]
+		[Flags, GenerateFlags],
+		[Expression, GenerateExpression],
+		[CharacterClass, GenerateClass],
+		[NegCharacterClass, GenerateNegClass],
+		[ClassRange, GenerateClassRange],
+		[Disjunction, GenerateDisjunction],
+		[DisjunctionArgument, GenerateDisjunctionArgument],
+		[NoGreedy, GenerateNoGreedy],
+		[Optional, GenerateOptional],
+		[ZeroPlus, GenerateZeroPlus],
+		[OnePlus, GenerateOnePlus],
+		[NoCaptureGroup, GenerateNonCaptureGroup],
+		[CaptureGroup, GenerateCaptureGroup],
+		[LookAhead, GenerateLookAhead],
+		[LookBehind, GenerateLookBehind],
+		[NegLookAhead, GenerateNegLookAhead],
+		[NegLookBehind, GenerateNegLookBehind],
+		[NamedBackreference, GenerateNamedBackreference],
+		[NOnly, GenerateNOnly],
+		[NtoM, GenerateNtoM],
+		[NPlus, GenerateNPlus],
+		[NamedCapture, GenerateNamedCapture],
+		[BackspaceClass, GenerateBackspaceClass],
+		[WordBoundry, GenerateWordBoundry],
+		[NonWordBoundry, GenerateNonWordBoundry],
+		[Newline, GenerateNewline],
+		[CarriageReturn, GenerateCarriageReturn],
+		[WordClass, GenerateWordClass],
+		[NonWordClass, GenerateNonWordClass],
+		[FormFeed, GenerateFormFeed],
+		[DigitClass, GenerateDigitClass],
+		[NonDigitClass, GenerateNonDigitClass],
+		[NULClass, GenerateNULClass],
+		[VerticalTab, GenerateVerticalTab],
+		[HorizontalTab, GenerateHorizontalTab],
+		[NonWhitespaceClass, GenerateNonWhitespaceClass],
+		[WhitespaceClass, GenerateWhitespaceClass],
+		[EmptyExpression, GenerateEmptyExpression],
+		[ControlCharacter, GenerateControlCharacter],
+		[UnicodeClassProperty, GenerateUnicodeClassProperty],
+		[Backreference, GenerateBackreference],
+		[Escaped, GenerateEscaped],
+		[MatchIndicies, GenerateMatchIndicies],
+		[GlobalSearch, GenerateGlobalSearch],
+		[CaseInsensitive, GenerateCaseInsensetive],
+		[Multiline, GenerateMultiline],
+		[DotAll, GenerateDotAll],
+		[Unicode, GenerateUnicode],
+		[UnicodeSets, GenerateUnicodeSets],
+		[Sticky, GenerateSticky],
+		[PatternStart, GeneratePatternStart],
+		[PatternEnd, GeneratePatternEnd]
 	]),
-	(input) => StringSource(`${input.curr().value}`)
+	GenerateTrivial
 )
 
 export const RegexGenerator = SourceGenerator(generatorMap)
