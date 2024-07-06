@@ -25,7 +25,7 @@ const _readNumber = read(trivialCompose((x) => !x, isNaN, Token.value, current))
 export const readNumber = (input) =>
 	_readNumber(input, TokenSource({ value: "" })).value.value
 
-export const handleBraced = (input) => {
+export function HandleBraced(input) {
 	const first = readNumber(input)
 	if (Comma.is(input.curr())) {
 		input.next()
@@ -45,7 +45,7 @@ const [OutOptional, OutZeroPlus, OutOnePlus] = [Optional, ZeroPlus, OnePlus].map
 )
 
 export const BraceHandler = wrapped(
-	trivialCompose(handleBraced, InputStream, (input) => limitBraced(input))
+	trivialCompose(HandleBraced, InputStream, (input) => limitBraced(input))
 )
 export function HandleQMark(input) {
 	input.next()

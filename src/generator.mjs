@@ -48,6 +48,7 @@ import {
 	NonWordBoundry,
 	NonWordClass,
 	NULClass,
+	RegexIdentifier,
 	UnicodeClassProperty,
 	VerticalTab,
 	WhitespaceClass,
@@ -55,6 +56,7 @@ import {
 	WordClass
 } from "./escaped/tokens.mjs"
 import { PatternEnd, PatternStart } from "./boundry/tokens.mjs"
+import { Comma, Pipe, RegexSymbol, Wildcard } from "./chars/tokens.mjs"
 
 const { trivialCompose, cache } = _f
 const { toObject } = map
@@ -107,7 +109,10 @@ const source = toObject(
 			"v",
 			"y",
 			"^",
-			"$"
+			"$",
+			".",
+			"|",
+			","
 		]
 	)
 )
@@ -181,8 +186,7 @@ const NCache = cache(
 )
 
 export function GenerateFlags(input, generator) {
-	const flagLen = input.next().value.flags.length
-	const flags = Array(flagLen)
+	const flags = Array(input.next().value.flags.length)
 		.fill(0)
 		.map(() => {
 			input.next()
@@ -190,13 +194,14 @@ export function GenerateFlags(input, generator) {
 		})
 		.join("")
 	input.next()
-	const expression = generator(input).value
-	return StringSource(`/${expression}/${flags}`)
+	return StringSource(`/${generator(input).value}/${flags}`)
 }
 
-export function GenerateClassRange(input) {
+export function GenerateClassRange(input, generator) {
 	input.next()
-	return StringSource(`${input.next().value}-${input.curr().value}`)
+	const from = generator(input).value
+	input.next()
+	return StringSource(`${from}-${generator(input).value}`)
 }
 
 export function GenerateNamedBackreference(input, generator) {
@@ -237,8 +242,8 @@ export const GenerateTrivial = (input) => StringSource(`${input.curr().value}`)
 
 export const [
 	GenerateExpression,
-	GenerateClass,
-	GenerateNegClass,
+	GenerateCharacterClass,
+	GenerateNegCharacterClass,
 	GenerateDisjunction,
 	GenerateDisjunctionArgument,
 	GenerateNonCaptureGroup,
@@ -300,7 +305,10 @@ export const [
 	GenerateUnicodeSets,
 	GenerateSticky,
 	GeneratePatternStart,
-	GeneratePatternEnd
+	GeneratePatternEnd,
+	GenerateWildcard,
+	GeneratePipe,
+	GenerateComma
 ] = [
 	"\\b",
 	"\\b",
@@ -327,31 +335,39 @@ export const [
 	"v",
 	"y",
 	"^",
-	"$"
+	"$",
+	".",
+	"|",
+	","
 ].map((x) => source[x])
 
+// ! NOTE: the untended-to '.value' symbols are a big bottleneck (they require passing through ALL the explicitly-stated tokens). Later - ensure that this really is ALL of the tokens cached...
 export const generatorMap = TypeMap(PredicateMap)(
 	new Map([
-		[Expression, GenerateExpression],
-		[CharacterClass, GenerateClass],
-		[NegCharacterClass, GenerateNegClass],
-		[ClassRange, GenerateClassRange],
-		[Disjunction, GenerateDisjunction],
+		[RegexSymbol, GenerateTrivial],
+		[Escaped, GenerateEscaped],
 		[DisjunctionArgument, GenerateDisjunctionArgument],
-		[NoGreedy, GenerateNoGreedy],
+		[ClassRange, GenerateClassRange],
+		[CharacterClass, GenerateCharacterClass],
+		[NegCharacterClass, GenerateNegCharacterClass],
 		[Optional, GenerateOptional],
 		[ZeroPlus, GenerateZeroPlus],
 		[OnePlus, GenerateOnePlus],
+		[Disjunction, GenerateDisjunction],
+		[Expression, GenerateExpression],
+		[Wildcard, GenerateWildcard],
 		[NoCaptureGroup, GenerateNonCaptureGroup],
 		[CaptureGroup, GenerateCaptureGroup],
 		[LookAhead, GenerateLookAhead],
 		[LookBehind, GenerateLookBehind],
 		[NegLookAhead, GenerateNegLookAhead],
 		[NegLookBehind, GenerateNegLookBehind],
-		[NamedBackreference, GenerateNamedBackreference],
 		[NOnly, GenerateNOnly],
 		[NtoM, GenerateNtoM],
 		[NPlus, GenerateNPlus],
+		[NoGreedy, GenerateNoGreedy],
+		[RegexIdentifier, GenerateTrivial],
+		[NamedBackreference, GenerateNamedBackreference],
 		[NamedCapture, GenerateNamedCapture],
 		[BackspaceClass, GenerateBackspaceClass],
 		[WordBoundry, GenerateWordBoundry],
@@ -372,7 +388,8 @@ export const generatorMap = TypeMap(PredicateMap)(
 		[ControlCharacter, GenerateControlCharacter],
 		[UnicodeClassProperty, GenerateUnicodeClassProperty],
 		[Backreference, GenerateBackreference],
-		[Escaped, GenerateEscaped],
+		[Pipe, GeneratePipe],
+		[Comma, GenerateComma],
 		[MatchIndicies, GenerateMatchIndicies],
 		[GlobalSearch, GenerateGlobalSearch],
 		[CaseInsensitive, GenerateCaseInsensetive],

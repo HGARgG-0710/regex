@@ -20,7 +20,7 @@ import {
 	RightAngular,
 	RegexSymbol,
 	Dollar,
-	Xor, 
+	Xor,
 	Comma
 } from "./tokens.mjs"
 
@@ -30,26 +30,26 @@ export const tokenizerMap = RegExpMap(
 	new Map(
 		[
 			[/\\/, Escape],
-			[/\[/, RectOp],
 			[/-/, Hyphen],
 			[/\|/, Pipe],
-			[/=/, Eq],
+			[/\[/, RectOp],
 			[/\]/, RectCl],
 			[/\(/, OpBrack],
 			[/\)/, ClBrack],
-			[/\{/, OpBrace],
-			[/\}/, ClBrace],
+			[/\?/, QMark],
+			[/\*/, Star],
+			[/\+/, Plus],
 			[/:/, Colon],
 			[/</, LeftAngular],
 			[/>/, RightAngular],
-			[/\?/, QMark],
 			[/\!/, ExclMark],
+			[/\{/, OpBrace],
+			[/\}/, ClBrace],
+			[/=/, Eq],
 			[/\./, Wildcard],
-			[/\*/, Star],
-			[/\+/, Plus],
 			[/\$/, Dollar],
 			[/\^/, Xor],
-			[/,/, Comma], 
+			[/,/, Comma],
 			[/./, RegexSymbol]
 		].map(([regexp, token]) => [global(regexp), token])
 	)

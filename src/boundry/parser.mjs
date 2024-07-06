@@ -20,7 +20,7 @@ export function HandleEscaped(input) {
 	return curr
 }
 
-export const boundryParser = TypeMap(PredicateMap)(
+export const boundryMap = TypeMap(PredicateMap)(
 	new Map(
 		[
 			[Escaped, HandleEscaped],
@@ -33,4 +33,4 @@ export const boundryParser = TypeMap(PredicateMap)(
 	forward
 )
 
-export const BoundryParser = BasicParser(boundryParser)
+export const BoundryParser = BasicParser(boundryMap)

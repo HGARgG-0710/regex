@@ -7,12 +7,17 @@ import {
 	forward,
 	limit,
 	wrapped,
-	InputStream
+	InputStream,
+	output
 } from "@hgargg-0710/parsers.js"
 import { Escape, Hyphen, RectOp, RectCl, Xor } from "../chars/tokens.mjs"
 import { CharacterClass, ClassRange, NegCharacterClass } from "./tokens.mjs"
 import { BackspaceClass } from "../escaped/tokens.mjs"
-import { escapedMap } from "../escaped/parser.mjs"
+import { escapedHandler, escapedMap } from "../escaped/parser.mjs"
+
+import { function as _f } from "@hgargg-0710/one"
+
+const { trivialCompose } = _f
 
 export const classLimit = limit((input) => !RectCl.is(input.curr()))
 
@@ -21,32 +26,44 @@ export const InClassEscapedHandler = ValueMap(BasicMap)(
 	(curr, input) => escapedMap.index(curr)(curr, input)
 )
 
-export function HandleEscaped(input) {
-	input.next() // \
-	const toEscape = input.next()
-	return [InClassEscapedHandler.index(toEscape)(toEscape, input)]
-}
-
-export function HandleRegular(input) {
-	const current = input.next()
+export function HandleRange(input) {
+	const curr = input.next()
 	if (Hyphen.is(input.curr())) {
-		input.next()
-		return [ClassRange([current, input.next()])]
+		input.next() // -
+		return ClassRange([curr, input.next()])
 	}
-	return [current]
+	return curr
 }
 
-export const parseClass = BasicParser(
-	TypeMap(PredicateMap)(new Map([[Escape, HandleEscaped]]), HandleRegular)
+export const IdentifyRanges = BasicParser(trivialCompose(output, HandleRange))
+
+export const HandleEscaped = escapedHandler(InClassEscapedHandler)
+
+export const EscapeInner = BasicParser(
+	TypeMap(PredicateMap)(
+		new Map([[Escape, trivialCompose(output, HandleEscaped)]]),
+		forward
+	)
+)
+
+export const ClassHandler = trivialCompose(
+	IdentifyRanges,
+	InputStream,
+	EscapeInner,
+	InputStream,
+	classLimit
 )
 
 export const HandleClass = wrapped(function (input) {
 	const isNegative = Xor.is(input.curr())
 	const ClassType = isNegative ? NegCharacterClass : CharacterClass
 	if (isNegative) input.next()
-	return [ClassType(parseClass(InputStream(classLimit(input))))]
+	return ClassType(ClassHandler(input))
 })
 
-export const classMap = TypeMap(PredicateMap)(new Map([[RectOp, HandleClass]]), forward)
+export const classMap = TypeMap(PredicateMap)(
+	new Map([[RectOp, trivialCompose(output, HandleClass)]]),
+	forward
+)
 
 export const CharacterClassParser = BasicParser(classMap)

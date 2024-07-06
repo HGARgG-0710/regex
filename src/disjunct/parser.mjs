@@ -19,7 +19,7 @@ import { function as _f } from "@hgargg-0710/one"
 
 const { trivialCompose } = _f
 
-export const isnotPipe = (input) => !Pipe.is(input.curr())
+const isnotPipe = (input) => !Pipe.is(input.curr())
 export const [limitPipe, skipTilPipes] = [limit, skip].map((f) => f(isnotPipe))
 
 // TODO: MAKE A PART OF 'parsers.js' v0.3 - the 'has' utility. Then, refactor from there...

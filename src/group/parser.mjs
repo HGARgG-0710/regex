@@ -117,12 +117,14 @@ export const CollectionHandler = TableParser(
 	TypeMap(PredicateMap)(new Map([[QMark, HandleQMark]]), HandleCollectionBase)
 )
 
-export const GroupHandler = trivialCompose(
-	output,
-	wrapped(trivialCompose(CollectionHandler, InputStream, nestedBrack))
+export const GroupHandler = wrapped(
+	trivialCompose(CollectionHandler, InputStream, nestedBrack)
 )
 
-export const groupMap = TypeMap(PredicateMap)(new Map([[OpBrack, GroupHandler]]), forward)
+export const groupMap = TypeMap(PredicateMap)(
+	new Map([[OpBrack, trivialCompose(output, GroupHandler)]]),
+	forward
+)
 
 export const GroupParser = BasicParser(groupMap)
 

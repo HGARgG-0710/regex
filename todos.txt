@@ -1,9 +1,9 @@
-1. Documentation
-2. For future: 
+1. For future: 
 
-	2.1. Add validation API; 
-	2.2. Reverse the parser (generator improvement);
-	2.3.?possibly: 
+	1.1. Add validation API; 
+	1.2. Reverse the parser (generator improvement);
+	1.3.?possibly: 
 		Fix the 'chars' remains - untended-to 'excl', and so forth... 
 		Those do not serve as anything beyond plain symbols... No reason for them to remain "specially marked"
 		after the parsing has been done...; 
+	1.4. Experiment with the order of table's args (performance increase) + (possibly), add more positions to the tables...

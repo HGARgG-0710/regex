@@ -8,7 +8,8 @@ import {
 	forward,
 	BasicParser,
 	Token,
-	ValueMap
+	ValueMap,
+	output
 } from "@hgargg-0710/parsers.js"
 
 import { function as _f } from "@hgargg-0710/one"
@@ -103,18 +104,19 @@ export const escapedMap = ValueMap(RegExpMap)(
 	trivialCompose(Escaped, Token.value)
 )
 
-// ? Refactor? [similar thing appears in 'parsers.mjs']
+// ! refactor .index(...)(....) [into 'parsers.js']
+export const escapedHandler = (map) =>
+	function (input) {
+		input.next() // \
+		const curr = input.next()
+		return map.index(curr)(curr, input)
+	}
+
+// ? Refactor? [slightly similar thing appears in 'classes']
+export const HandleEscaped = escapedHandler(escapedMap)
+
 export const escapePreface = TypeMap(PredicateMap)(
-	new Map([
-		[
-			Escape,
-			function (input) {
-				input.next() // \
-				const curr = input.next()
-				return [escapedMap.index(curr)(curr, input)]
-			}
-		]
-	]),
+	new Map([[Escape, trivialCompose(output, HandleEscaped)]]),
 	forward
 )
 

@@ -23,7 +23,8 @@ import {
 	NegLookBehind,
 	NoCaptureGroup
 } from "./group/tokens.mjs"
-import { NamedBackreference } from "./escaped/tokens.mjs"
+import { Escaped, NamedBackreference } from "./escaped/tokens.mjs"
+import { RegexSymbol } from "./chars/tokens.mjs"
 
 const { trivialCompose } = _f
 const { isArray } = misc
@@ -92,16 +93,18 @@ export function NamedCaptureTree(tree, treeConverter) {
 export const treeMap = TypeMap(PredicateMap)(
 	new Map(
 		[
-			[Expression, ExpressionTree],
-			[CharacterClass, ValueTree],
-			[NegCharacterClass, ValueTree],
+			[RegexSymbol, ChildlessTree],
+			[Escaped, ChildlessTree],
 			[ClassRange, ValueTree],
-			[Disjunction, ValueTree],
 			[DisjunctionArgument, ValueTree],
-			[NoGreedy, SingleTree],
 			[ZeroPlus, SingleTree],
 			[OnePlus, SingleTree],
 			[Optional, SingleTree],
+			[Expression, ExpressionTree],
+			[CharacterClass, ValueTree],
+			[NegCharacterClass, ValueTree],
+			[Disjunction, ValueTree],
+			[NoGreedy, SingleTree],
 			[NoCaptureGroup, SingleTree],
 			[CaptureGroup, SingleTree],
 			[NOnly, SeveralTree],
@@ -135,3 +138,5 @@ export const RegexTree = trivialCompose((x) => {
 }, fromTable(treeMap))
 
 export const RegexStream = trivialCompose(TreeStream, RegexTree)
+
+export default RegexTree
